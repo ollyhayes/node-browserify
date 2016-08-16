@@ -116,15 +116,13 @@ Browserify.prototype.require = function (file, opts) {
     var basedir = defined(opts.basedir, self._options.basedir, process.cwd());
     var expose = opts.expose;
     if (file === expose && /^[\.]/.test(expose)) {
-        expose = '/' + path.relative(basedir, expose);
-        expose = expose.replace(/\\/g, '/');
+        expose = fixPath('/' + path.relative(basedir, expose));
     }
     if (expose === undefined && this._options.exposeAll) {
         expose = true;
     }
     if (expose === true) {
-        expose = '/' + path.relative(basedir, file);
-        expose = expose.replace(/\\/g, '/');
+        expose = fixPath('/' + path.relative(basedir, file));
     }
     
     if (isStream(file)) {
@@ -256,7 +254,7 @@ Browserify.prototype.external = function (file, opts) {
     if (!opts) opts = {};
     var basedir = defined(opts.basedir, process.cwd());
     this._external.push(file);
-    this._external.push('/' + path.relative(basedir, file));
+    this._external.push(fixPath('/' + path.relative(basedir, file)));
     return this;
 };
 
@@ -678,7 +676,7 @@ Browserify.prototype._label = function (opts) {
         var prev = row.id;
 
         if (self._external.indexOf(row.id) >= 0) return next();
-        if (self._external.indexOf('/' + path.relative(basedir, row.id)) >= 0) {
+        if (self._external.indexOf(fixPath('/' + path.relative(basedir, row.id))) >= 0) {
             return next();
         }
         if (self._external.indexOf(row.file) >= 0) return next();
@@ -694,8 +692,8 @@ Browserify.prototype._label = function (opts) {
                 return;
             }
 
-            var afile = path.resolve(path.dirname(row.file), key);
-            var rfile = '/' + path.relative(basedir, afile);
+            var afile = fixPath(path.resolve(path.dirname(row.file), key));
+            var rfile = fixPath('/' + path.relative(basedir, afile));
             if (self._external.indexOf(rfile) >= 0) {
                 row.deps[key] = rfile;
             }
@@ -738,8 +736,7 @@ Browserify.prototype._debug = function (opts) {
     return through.obj(function (row, enc, next) {
         if (opts.debug) {
             row.sourceRoot = 'file://localhost';
-            row.sourceFile = path.relative(basedir, row.file)
-                .replace(/\\/g, '/');
+            row.sourceFile = fixPath(path.relative(basedir, row.file));
         }
         this.push(row);
         next();
@@ -804,3 +801,8 @@ function isExternalModule (file) {
         /^[\/.]/;
     return !regexp.test(file);
 }
+
+function fixPath(path) {
+	return path.replace(/\\/g, '/');
+};
+
